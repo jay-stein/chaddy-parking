@@ -1,0 +1,19 @@
+{
+  "name": "Jay Chaddy Parking Guide",
+  "short_name": "Parking Guide",
+  "description": "Live parking availability at Chadstone Shopping Centre",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a1a",
+  "theme_color": "#0a0a1a",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
