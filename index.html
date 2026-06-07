@@ -391,13 +391,17 @@
 
       const hoursList = data?.weekly || WEEKLY_HOURS;
       const holiday = data?.holiday || null;
+      const holidays = data?.holidays || [];
+      const hMap = {};
+      holidays.forEach(h => { hMap[h.weekday] = h; });
 
       const dayIndex = now.getDay();
       const today = hoursList[dayIndex];
-      const open = holiday ? holiday.open : today.open;
-      const close = holiday ? holiday.close : today.close;
-      const dayLabel = holiday ? holiday.label : today.day;
-      const hoursDisplay = holiday ? holiday.hours : today.hours;
+      const todayHoliday = hMap[dayIndex];
+      const open = todayHoliday ? todayHoliday.open : today.open;
+      const close = todayHoliday ? todayHoliday.close : today.close;
+      const dayLabel = todayHoliday ? `${todayHoliday.label}` : today.day;
+      const hoursDisplay = todayHoliday ? todayHoliday.hours : today.hours;
 
       const currMins = now.getHours() * 60 + now.getMinutes();
       const openMins = open[0] * 60 + open[1];
@@ -416,7 +420,7 @@
           <div class="glass-card p-5 card-enter">
             <div class="flex items-center gap-3 mb-2">
               <div class="w-3 h-3 rounded-full" style="background:${isOpen ? '#10b981' : '#6b7280'}; box-shadow: 0 0 8px ${isOpen ? 'rgba(16,185,129,0.5)' : 'transparent'};"></div>
-              <p class="text-xs uppercase tracking-widest text-white/40">Today · ${dayLabel}${holiday ? html` <span class="text-yellow-400">(public holiday)</span>` : ''}</p>
+              <p class="text-xs uppercase tracking-widest text-white/40">Today · ${dayLabel}${todayHoliday ? html` <span class="text-yellow-400">(public holiday)</span>` : ''}</p>
             </div>
             <p class="text-xl font-bold mb-1">${hoursDisplay}</p>
             <p class="text-sm" style="color:${isOpen ? '#10b981' : '#9ca3af'};">${statusText}</p>
@@ -426,8 +430,8 @@
             <p class="text-xs uppercase tracking-widest text-white/40 mb-3">Centre Trading Hours</p>
             ${hoursList.map((d, i) => html`
               <div class="flex justify-between py-2 ${i === dayIndex ? 'text-white font-semibold' : 'text-white/50'} ${i < 6 ? 'border-b border-white/5' : ''}">
-                <span class="text-sm">${d.day}${i === dayIndex ? ' · today' : ''}${holiday && i === dayIndex ? html` <span class="text-yellow-400 text-xs">(holiday)</span>` : ''}</span>
-                <span class="text-sm">${holiday && i === dayIndex ? holiday.hours : d.hours}</span>
+                <span class="text-sm">${d.day}${i === dayIndex ? ' · today' : ''}${hMap[i] ? html` <span class="text-yellow-400 text-xs">${hMap[i].label}</span>` : ''}</span>
+                <span class="text-sm">${hMap[i] ? hMap[i].hours : d.hours}</span>
               </div>
             `)}
           </div>
@@ -454,12 +458,93 @@
     }
 
     function ParkingMap() {
+      const imgRef = useRef(null);
+      const gs = useRef({ s: 1, x: 0, y: 0, pan: false, startX: 0, startY: 0, sx: 0, sy: 0, ss: 1, sd: 0, lt: 0 });
+
+      function ap() {
+        const el = imgRef.current;
+        if (el) el.style.transform = `scale(${gs.current.s}) translate(${gs.current.x / gs.current.s}px, ${gs.current.y / gs.current.s}px)`;
+      }
+
+      const onTS = useCallback((e) => {
+        if (e.touches.length === 1) {
+          const n = Date.now();
+          if (n - gs.current.lt < 300) { gs.current.s = gs.current.s > 1.5 ? 1 : 2.5; gs.current.x = 0; gs.current.y = 0; ap(); return; }
+          gs.current.lt = n;
+          gs.current.pan = true;
+          gs.current.startX = e.touches[0].clientX;
+          gs.current.startY = e.touches[0].clientY;
+          gs.current.sx = gs.current.x;
+          gs.current.sy = gs.current.y;
+        } else if (e.touches.length === 2) {
+          const t = e.touches;
+          gs.current.sd = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+          gs.current.ss = gs.current.s;
+          gs.current.sx = gs.current.x;
+          gs.current.sy = gs.current.y;
+        }
+      }, []);
+
+      const onTM = useCallback((e) => {
+        e.preventDefault();
+        if (gs.current.pan && e.touches.length === 1) {
+          gs.current.x = gs.current.sx + (e.touches[0].clientX - gs.current.startX);
+          gs.current.y = gs.current.sy + (e.touches[0].clientY - gs.current.startY);
+          ap();
+        } else if (!gs.current.pan && e.touches.length === 2) {
+          const t = e.touches;
+          const d = Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+          gs.current.s = Math.max(1, Math.min(4, gs.current.ss * (d / gs.current.sd)));
+          ap();
+        }
+      }, []);
+
+      const onTE = useCallback(() => { gs.current.pan = false; }, []);
+
+      // Mouse drag
+      const onMD = useCallback((e) => {
+        gs.current.pan = true;
+        gs.current.startX = e.clientX;
+        gs.current.startY = e.clientY;
+        gs.current.sx = gs.current.x;
+        gs.current.sy = gs.current.y;
+      }, []);
+
+      const onMM = useCallback((e) => {
+        if (!gs.current.pan) return;
+        gs.current.x = gs.current.sx + (e.clientX - gs.current.startX);
+        gs.current.y = gs.current.sy + (e.clientY - gs.current.startY);
+        ap();
+      }, []);
+
+      const onMU = useCallback(() => { gs.current.pan = false; }, []);
+
+      const onW = useCallback((e) => {
+        e.preventDefault();
+        gs.current.s = Math.max(1, Math.min(4, gs.current.s - e.deltaY * 0.002));
+        ap();
+      }, []);
+
       return html`
         <div class="space-y-3">
-          <div class="glass-card p-3 overflow-hidden" style="touch-action: pinch-zoom pan-x pan-y;">
-            <img src="/images/chaddy_map.png" alt="Chadstone Parking Map" class="map-container w-full" style="max-width:100%; height:auto;" />
+          <div class="glass-card p-0 overflow-hidden"
+            style="touch-action:none; position:relative; height:60vh; cursor:grab;"
+            onTouchStart=${onTS}
+            onTouchMove=${onTM}
+            onTouchEnd=${onTE}
+            onMouseDown=${onMD}
+            onMouseMove=${onMM}
+            onMouseUp=${onMU}
+            onMouseLeave=${onMU}
+            onWheel=${onW}
+          >
+            <img ref=${imgRef} src="/images/chaddy_map.png" alt="Chadstone Parking Map"
+              class="w-full"
+              style="transform-origin:0 0; display:block; user-select:none; -webkit-user-select:none; pointer-events:none;"
+              draggable="false"
+            />
           </div>
-          <p class="text-center text-xs text-white/15">Pinch to zoom · Scroll to pan</p>
+          <p class="text-center text-xs text-white/15">Pinch to zoom · Drag to pan · Double-tap to reset · Scroll to zoom</p>
         </div>
       `;
     }

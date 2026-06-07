@@ -73,6 +73,26 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             raw = m.group(1)
 
             today = datetime.date.today()
+            monday = today - datetime.timedelta(days=today.weekday())
+            week_holidays = []
+            for i in range(14):
+                d = monday + datetime.timedelta(days=i)
+                h = VIC_HOLIDAYS.get((d.month, d.day))
+                if h and all(x["weekday"] != (i + 1) % 7 or x["label"] != h["label"] for x in week_holidays):
+                    def fmt_hm(hm):
+                        h, m = hm
+                        ampm = "am" if h < 12 else "pm"
+                        h12 = h % 12
+                        if h12 == 0:
+                            h12 = 12
+                        return f"{h12}:{m:02d}{ampm}"
+                    week_holidays.append({
+                        "weekday": (i + 1) % 7,
+                        "label": h["label"],
+                        "open": h["open"],
+                        "close": h["close"],
+                        "hours": f"{fmt_hm(h['open'])} – {fmt_hm(h['close'])}"
+                    })
             holiday = VIC_HOLIDAYS.get((today.month, today.day))
 
             days_map = {
@@ -124,6 +144,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
             result = {
                 "weekly": weekly,
+                "holidays": week_holidays,
                 "holiday": None,
                 "cache_hint": "scraped"
             }
@@ -136,7 +157,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     "label": holiday["label"],
                     "open": holiday["open"],
                     "close": holiday["close"],
-                    "hours": f"{holiday['open'][0]:02d}:{holiday['open'][1]:02d} – {holiday['close'][0]:02d}:{holiday['close'][1]:02d}"
+                    "hours": f"{fmt_hm(holiday['open'])} – {fmt_hm(holiday['close'])}"
                 }
 
             return result

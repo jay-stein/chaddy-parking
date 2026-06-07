@@ -52,6 +52,37 @@ function getHoliday() {
   return VIC_HOLIDAYS[key] || null;
 }
 
+function getWeekHolidays() {
+  const now = new Date();
+  const day = now.getDay();
+  const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+  const monday = new Date(now);
+  monday.setDate(diff);
+  const seen = new Set();
+  const result = [];
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    const key = String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const h = VIC_HOLIDAYS[key];
+      if (h) {
+        const wk = (i + 1) % 7;
+        const sk = wk + '-' + h.label;
+        if (seen.has(sk)) continue;
+        seen.add(sk);
+        const fmt = (hm) => { let h = hm[0], m = hm[1], ap = h < 12 ? 'am' : 'pm', h12 = h % 12 || 12; return h12 + ':' + String(m).padStart(2, '0') + ap; };
+        result.push({
+          weekday: wk,
+          label: h.label,
+          open: h.open,
+          close: h.close,
+          hours: fmt(h.open) + ' – ' + fmt(h.close),
+        });
+      }
+  }
+  return result;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
@@ -73,8 +104,9 @@ export default async function handler(req, res) {
 
     const weekly = parseHours(m[1]);
     const holiday = getHoliday();
+    const holidays = getWeekHolidays();
 
-    res.status(200).json({ weekly, holiday, cache_hint: 'scraped' });
+    res.status(200).json({ weekly, holiday, holidays, cache_hint: 'scraped' });
   } catch (e) {
     const fallback = [
       { day: 'Sunday', open: [10, 0], close: [19, 0], hours: '10:00 am – 7:00 pm' },
@@ -85,6 +117,6 @@ export default async function handler(req, res) {
       { day: 'Friday', open: [9, 0], close: [21, 0], hours: '9:00 am – 9:00 pm' },
       { day: 'Saturday', open: [9, 0], close: [21, 0], hours: '9:00 am – 9:00 pm' },
     ];
-    res.status(200).json({ weekly: fallback, holiday: null, error: e.message, using_fallback: true });
+    res.status(200).json({ weekly: fallback, holiday: null, holidays: [], error: e.message, using_fallback: true });
   }
 }
