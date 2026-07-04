@@ -646,8 +646,11 @@
         return () => { mountedRef.current = false; };
       }, [fetchParking, fetchTraffic, fetchHours]);
 
+      const isVisible = () => !document.hidden;
+
       useEffect(() => {
         const t = setInterval(() => {
+          if (!isVisible()) return;
           setCountdown(c => { if (c <= 1) { fetchParking(true); return REFRESH_INTERVAL; } return c - 1; });
         }, 1000);
         return () => clearInterval(t);
@@ -655,6 +658,7 @@
 
       useEffect(() => {
         const t = setInterval(() => {
+          if (!isVisible()) return;
           setTrafficCountdown(c => { if (c <= 1) { fetchTraffic(true); return TRAFFIC_REFRESH_INTERVAL; } return c - 1; });
         }, 1000);
         return () => clearInterval(t);
