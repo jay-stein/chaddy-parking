@@ -267,7 +267,7 @@
       `;
     }
 
-    function Planner({ data, loading, cached, dayIndex, onDayChange, lastUpdated, onRefresh, countdown }) {
+    function Planner({ data, loading, cached, dayIndex, onDayChange, lastUpdated, onRefresh, countdown, refreshed }) {
       if (loading && !data) return html`
         <div class="flex justify-center py-12">
           <div class="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
@@ -330,7 +330,8 @@
               ${cached ? html`<span class="ml-1.5 px-1.5 py-0.5 rounded-full text-yellow-400 bg-yellow-500/15">cached</span>` : ''}
             </span>
             <div class="flex items-center gap-2">
-              <span class="text-xs text-white/20">refresh in ${countdown}s</span>
+              ${refreshed ? html`<span class="text-xs px-1.5 py-0.5 rounded-full text-green-400 bg-green-500/15 card-enter">Refreshed ✓</span>` : ''}
+              <span class="text-xs text-white/20">${countdown}s</span>
               <button onClick=${onRefresh} class="p-1.5 rounded-full hover:bg-white/10 transition-colors">
                 <svg class="w-3.5 h-3.5 text-white/50" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
               </button>
@@ -578,6 +579,8 @@
       const [trafficCountdown, setTrafficCountdown] = useState(TRAFFIC_REFRESH_INTERVAL);
       const [lastTrafficUpdate, setLastTrafficUpdate] = useState(null);
       const [trafficDayIndex, setTrafficDayIndex] = useState(0);
+      const [showTrafficRefreshed, setShowTrafficRefreshed] = useState(false);
+      const trafficRefreshedTimer = useRef(null);
       const mountedRef = useRef(true);
 
       const fetchParking = useCallback(async (isBg = false) => {
@@ -606,9 +609,10 @@
         if (!isBg) setTrafficLoading(true);
         const ts = todayStr();
         let result = await fetchApi(`/api/traffic?startDate=${ts}`);
+        let wasCached = false;
         if (!result) {
           const c = localStorage.getItem('traffic_data');
-          if (c) { result = JSON.parse(c); setTrafficCached(true); }
+          if (c) { result = JSON.parse(c); wasCached = true; setTrafficCached(true); }
           else {
             if (mountedRef.current) { setTrafficLoading(false); }
             return;
@@ -622,6 +626,11 @@
           setLastTrafficUpdate(new Date());
           setTrafficLoading(false);
           setTrafficCountdown(TRAFFIC_REFRESH_INTERVAL);
+          if (isBg && !wasCached) {
+            setShowTrafficRefreshed(true);
+            if (trafficRefreshedTimer.current) clearTimeout(trafficRefreshedTimer.current);
+            trafficRefreshedTimer.current = setTimeout(() => { if (mountedRef.current) setShowTrafficRefreshed(false); }, 2000);
+          }
           const days = result.traffic?.days || [];
           const todayIdx = days.findIndex(d => d.datestamp === ts);
           if (todayIdx >= 0) setTrafficDayIndex(todayIdx);
@@ -691,7 +700,7 @@
             <${ParkingFinder} data=${parkingData} loading=${parkingLoading} cached=${parkingCached} lastUpdated=${lastParkingUpdate} countdown=${countdown} onRefresh=${() => fetchParking(true)} />
           </div>
           <div style="display: ${tab === 1 ? 'block' : 'none'};">
-            <${Planner} data=${trafficData} loading=${trafficLoading} cached=${trafficCached} dayIndex=${trafficDayIndex} onDayChange=${setTrafficDayIndex} lastUpdated=${lastTrafficUpdate} onRefresh=${() => fetchTraffic(true)} countdown=${trafficCountdown} />
+            <${Planner} data=${trafficData} loading=${trafficLoading} cached=${trafficCached} dayIndex=${trafficDayIndex} onDayChange=${setTrafficDayIndex} lastUpdated=${lastTrafficUpdate} onRefresh=${() => fetchTraffic(true)} countdown=${trafficCountdown} refreshed=${showTrafficRefreshed} />
           </div>
           <div style="display: ${tab === 2 ? 'block' : 'none'};">
             <${Hours} data=${hoursData} />
