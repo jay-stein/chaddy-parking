@@ -295,7 +295,7 @@
         return hr >= 6 && hr <= 22;
       });
 
-      const maxOcc = Math.max(...visibleHours.map(h => h.occupancy), 0.01);
+      const maxOcc = Math.max(...visibleHours.map(h => Math.min(h.occupancy, 1)), 0.01);
       const maxHeight = 130;
 
       const peak = visibleHours.reduce((a, b) => b.occupancy > a.occupancy ? b : a, visibleHours[0]);
@@ -338,14 +338,17 @@
           </div>
 
           <div class="glass-card p-4" style="position:relative;">
-            <div style="display:flex; align-items:flex-end; gap:3px; height:${maxHeight + 20}px; padding-top:10px;">
+            <div style="display:flex; align-items:flex-end; gap:3px; height:${maxHeight + 30}px; padding-top:10px;">
               ${visibleHours.map((h, i) => {
-                const heightPx = Math.max((h.occupancy / maxOcc) * maxHeight, 2);
+                const occ = Math.min(h.occupancy, 1);
+                const heightPx = Math.max((occ / maxOcc) * maxHeight, 2);
+                const pct = Math.round(occ * 100);
                 const as = alertStyle(h.alertLevel);
                 const hr = parseInt(h.timestamp.slice(11, 13), 10);
                 return html`
                   <div key=${i} style="flex:1; display:flex; flex-direction:column; align-items:center; position:relative;">
-                    ${i === nowBarIndex ? html`<div class="now-marker" style="bottom:${heightPx + 4}px; height:10px; animation: pulseGlow 2s ease infinite;"></div>` : null}
+                    ${i === nowBarIndex ? html`<div class="now-marker" style="bottom:${heightPx + 16}px; height:10px; animation: pulseGlow 2s ease infinite;"></div>` : null}
+                    <span style="position:absolute; bottom:${heightPx + 4}px; font-size:8px; color:rgba(255,255,255,0.45); line-height:1; pointer-events:none;">${pct}%</span>
                     <div class="chart-bar" style="height:${heightPx}px; background:${as.bar};"></div>
                   </div>
                 `;
