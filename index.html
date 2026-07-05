@@ -295,7 +295,7 @@
         return hr >= 6 && hr <= 22;
       });
 
-      const maxOcc = Math.max(...visibleHours.map(h => Math.min(h.occupancy, 1)), 0.01);
+      const maxOcc = Math.max(...visibleHours.map(h => h.occupancy), 0.01);
       const maxHeight = 130;
 
       const peak = visibleHours.reduce((a, b) => b.occupancy > a.occupancy ? b : a, visibleHours[0]);
@@ -341,9 +341,8 @@
           <div class="glass-card p-4" style="position:relative;">
             <div style="display:flex; align-items:flex-end; gap:3px; height:${maxHeight + 30}px; padding-top:10px;">
               ${visibleHours.map((h, i) => {
-                const occ = Math.min(h.occupancy, 1);
-                const heightPx = Math.max((occ / maxOcc) * maxHeight, 2);
-                const pct = Math.round(occ * 100);
+                const heightPx = Math.max((h.occupancy / maxOcc) * maxHeight, 2);
+                const pct = Math.round(h.occupancy * 100);
                 const as = alertStyle(h.alertLevel);
                 const hr = parseInt(h.timestamp.slice(11, 13), 10);
                 return html`
