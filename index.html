@@ -96,12 +96,12 @@
     const html = htm.bind(h);
 
     const CAR_PARKS = [
-      { id: '616a72f7-85b0-439e-8f65-628a9807ab16', letter: 'A', name: 'David Jones', private: false },
-      { id: '552a29ab-8cd0-4f88-a21d-25cda056538b', letter: 'B', name: 'Social Qtr / HOYTS', private: false },
-      { id: 'fa6fdfcc-ba17-4f56-949b-2d9be220b283', letter: 'C', name: 'Market Pavilion / Coles', private: false },
-      { id: null, letter: 'D', name: 'Private Parking', private: true },
-      { id: '3998a27d-eaeb-4498-87ea-54b7060930e4', letter: 'E', name: 'Woolworths / Dining', private: false },
-      { id: '80ed54e9-8f85-44f2-adc9-94659820b6d9', letter: 'F', name: 'Myer', private: false },
+      { id: '616a72f7-85b0-439e-8f65-628a9807ab16', letter: 'A', name: 'David Jones (5 levels)', private: false },
+      { id: '552a29ab-8cd0-4f88-a21d-25cda056538b', letter: 'B', name: 'Social Qtr / HOYTS / Legoland', private: false },
+      { id: 'fa6fdfcc-ba17-4f56-949b-2d9be220b283', letter: 'C', name: 'Market Pavilion / Coles / ALDI', private: false },
+      { id: null, letter: 'D', name: 'Commercial Private Parking', private: true },
+      { id: '3998a27d-eaeb-4498-87ea-54b7060930e4', letter: 'E', name: 'Open Air 2h Free: Market Pavilion, Dining, Fresh Food', private: false },
+      { id: '80ed54e9-8f85-44f2-adc9-94659820b6d9', letter: 'F', name: 'Myer (2 levels)', private: false },
     ];
 
     const THEME = {
@@ -158,7 +158,7 @@
     }
 
     function SegmentedControl({ active, onChange }) {
-      const labels = ['Finder', 'Planner', 'Hours', 'Map'];
+      const labels = ['Parking', 'Planner', 'Hours', 'Map'];
       return html`
         <div class="segmented-wrap mb-5">
           ${labels.map((label, i) => html`
@@ -680,7 +680,7 @@
       }
 
       const titles = [
-        ['🅿️', 'Parking Finder'],
+        ['🅿️', 'Parking'],
         ['📊', 'Visit Planner'],
         ['🕐', 'Opening Hours'],
         ['🗺️', 'Parking Map'],
